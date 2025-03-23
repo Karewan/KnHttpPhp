@@ -1,0 +1,25 @@
+{
+	"name": "karewan/knhttp",
+	"description": "Simple HTTP Client for PHP 8.3+ using curl",
+	"keywords": ["http", "client", "curl"],
+	"type": "library",
+	"version": "1.0.0",
+	"license": "MIT",
+	"homepage": "https://github.com/Karewan/KnHttpPhp",
+	"authors": [
+		{
+			"name": "Florent VIALATTE",
+			"role": "developer",
+			"homepage": "https://github.com/Karewan"
+		}
+	],
+	"require": {
+		"php": ">=8.3",
+		"ext-curl": "*"
+	},
+	"autoload": {
+		"psr-4": {
+			"Karewan\\KnHttp\\": "src/"
+		}
+	}
+}
