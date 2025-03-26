@@ -3,7 +3,7 @@
 	"description": "Simple HTTP Client for PHP 8.3+ using curl",
 	"keywords": ["http", "client", "curl"],
 	"type": "library",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"license": "MIT",
 	"homepage": "https://github.com/Karewan/KnHttpPhp",
 	"authors": [
