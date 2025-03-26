@@ -185,7 +185,8 @@ class KnRequest
 			CURLOPT_FORBID_REUSE => false,
 			CURLOPT_SSL_VERIFYSTATUS => false,
 			CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_2,
-			CURLOPT_HEADERFUNCTION => [$this, 'handleResponseHeader']
+			CURLOPT_HEADERFUNCTION => [$this, 'handleResponseHeader'],
+			CURLOPT_ACCEPT_ENCODING => ''
 		]);
 	}
 
