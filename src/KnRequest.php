@@ -633,13 +633,13 @@ class KnRequest
 					CURLOPT_POST => true,
 					CURLOPT_POSTFIELDS => $this->stringBody
 				]);
-				$headers['Content-Type'] = 'text/plain; charset=utf-8';
+				if (!isset($headers['Content-Type'])) $headers['Content-Type'] = 'text/plain; charset=utf-8';
 			} else if (isset($this->jsonBody)) {
 				curl_setopt_array($this->curl, [
 					CURLOPT_POST => true,
 					CURLOPT_POSTFIELDS => json_encode($this->jsonBody)
 				]);
-				$headers['Content-Type'] = 'application/json; charset=utf-8';
+				if (!isset($headers['Content-Type'])) $headers['Content-Type'] = 'application/json; charset=utf-8';
 			} else if (isset($this->fileBody)) {
 				curl_setopt_array($this->curl, [
 					CURLOPT_PUT => true,
