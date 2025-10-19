@@ -1,3 +1,7 @@
+v1.1.1 (2025-10-19)
+----------------------------
+* Added a concurrency and maxConnPerHost params to execMulti
+
 v1.1.0 (2025-10-19)
 ----------------------------
 * Added async parallel requests execution
