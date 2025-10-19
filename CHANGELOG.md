@@ -1,3 +1,7 @@
+v1.1.2 (2025-10-19)
+----------------------------
+* Fixed response parsing when using curl_multi_getcontent
+
 v1.1.1 (2025-10-19)
 ----------------------------
 * Added a concurrency and maxConnPerHost params to execMulti
