@@ -327,7 +327,7 @@ class KnRequest
 	 */
 	public function clearHeaders(): KnRequest
 	{
-		$this->pathParams = [];
+		$this->headers = [];
 		return $this;
 	}
 
