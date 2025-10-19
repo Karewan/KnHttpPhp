@@ -673,15 +673,17 @@ class KnRequest
 
 	/**
 	 * Execute multiple requests in parallel
-	 * @param array<KnRequest>
+	 * @param array<KnRequest> $requests
+	 * @param int $concurrency
+	 * @param int $maxConnPerHost
 	 * @return array<KnResponse>
 	 */
-	public static function execMulti(array $requests): array
+	public static function execMulti(array $requests, int $concurrency = 10, int $maxConnPerHost = 1): array
 	{
 		$multiHandle = curl_multi_init();
 		curl_multi_setopt($multiHandle, CURLMOPT_PIPELINING, CURLPIPE_MULTIPLEX);
-		curl_multi_setopt($multiHandle, CURLMOPT_MAX_HOST_CONNECTIONS, 1);
-		curl_multi_setopt($multiHandle, CURLMOPT_MAX_TOTAL_CONNECTIONS, 10);
+		curl_multi_setopt($multiHandle, CURLMOPT_MAX_HOST_CONNECTIONS, $maxConnPerHost);
+		curl_multi_setopt($multiHandle, CURLMOPT_MAX_TOTAL_CONNECTIONS, $concurrency);
 
 		$shareHandle = curl_share_init();
 		curl_share_setopt($shareHandle, CURLSHOPT_SHARE, CURL_LOCK_DATA_DNS);
