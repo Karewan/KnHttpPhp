@@ -851,12 +851,12 @@ class KnRequest
 	/**
 	 * Parses a completed cURL response.
 	 * @param CurlHandle $curl The completed handle.
-	 * @param bool|string $response The response content from curl_exec or curl_multi_getcontent.
+	 * @param null|bool|string $response The response content from curl_exec or curl_multi_getcontent.
 	 * @param int $curlErrorNo The curl error number.
 	 * @param string $curlError The curl error message.
 	 * @return KnResponse
 	 */
-	private function _parseResponse(CurlHandle $curl, bool|string $response, int $curlErrorNo, string $curlError): KnResponse
+	private function _parseResponse(CurlHandle $curl, null|bool|string $response, int $curlErrorNo, string $curlError): KnResponse
 	{
 		// Handle CURL errors
 		switch ($curlErrorNo) {
@@ -897,10 +897,10 @@ class KnRequest
 	/**
 	 * Parse OK Response
 	 * @param CurlHandle $curl
-	 * @param string|bool $response
+	 * @param null|string|bool $response
 	 * @return KnResponse
 	 */
-	private function _parseOkResponse(CurlHandle $curl, string|bool $response): KnResponse
+	private function _parseOkResponse(CurlHandle $curl, null|string|bool $response): KnResponse
 	{
 		$httpCode = intval(curl_getinfo($curl, CURLINFO_RESPONSE_CODE));
 		$data = null;
