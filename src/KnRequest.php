@@ -528,15 +528,16 @@ class KnRequest
 
 	/**
 	 * Clear bodies
-	 * @return void
+	 * @return KnRequest
 	 */
-	public function clearBodies(): void
+	public function clearBodies(): KnRequest
 	{
 		$this->formBody = null;
 		$this->formDataBody = null;
 		$this->stringBody = null;
 		$this->jsonBody = null;
 		$this->fileBody = null;
+		return $this;
 	}
 
 	/**
