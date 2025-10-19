@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace Karewan\KnHttp;
 
 use CurlHandle;
+use RuntimeException;
 use Throwable;
 
 class KnRequest
 {
 	/**
-	 * Response type
+	 * Response type constants
 	 * @var int
 	 */
 	private const int
@@ -134,22 +135,16 @@ class KnRequest
 	private array $responseHeaders = [];
 
 	/**
-	 * Response JSON assoc param
-	 * @var bool
-	 */
-	private bool $resJsonAssoc = false;
-
-	/**
-	 * Response JSON depth param
+	 * The expected response type for this request
 	 * @var int
 	 */
-	private int $resJsonDepth = 512;
+	private int $responseType = self::RES_AS_STRING;
 
 	/**
-	 * Response JSON flags params
-	 * @var int
+	 * Arguments for the response parser (e.g., for JSON decoding)
+	 * @var array
 	 */
-	private int $resJsonFlags = JSON_BIGINT_AS_STRING;
+	private array $responseTypeArgs = [];
 
 	/**
 	 * Response file path
@@ -169,10 +164,11 @@ class KnRequest
 	 */
 	public function __construct()
 	{
-		// Init CURL
+		// Init CURL for single requests
 		$this->curl = curl_init() ?: null;
+		if (!isset($this->curl)) throw new RuntimeException('cURL handle not initialized.');
 
-		// Set CURL options
+		// Set default handle CURL options if it exists
 		curl_setopt_array($this->curl, [
 			CURLOPT_PROTOCOLS => CURLPROTO_HTTPS | CURLPROTO_HTTP,
 			CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
@@ -185,7 +181,8 @@ class KnRequest
 			CURLOPT_FORBID_REUSE => false,
 			CURLOPT_SSL_VERIFYSTATUS => false,
 			CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_2,
-			CURLOPT_HEADERFUNCTION => [$this, 'handleResponseHeader'],
+			CURLOPT_NOSIGNAL => true,
+			CURLOPT_HEADERFUNCTION => [$this, '_handleResponseHeader'],
 			CURLOPT_ACCEPT_ENCODING => ''
 		]);
 	}
@@ -196,7 +193,7 @@ class KnRequest
 	 */
 	public function __destruct()
 	{
-		// Close CURL
+		// Close CURL handle if it exists
 		if (isset($this->curl)) curl_close($this->curl);
 	}
 
@@ -546,7 +543,18 @@ class KnRequest
 	 */
 	public function execForString(): KnResponse
 	{
-		return $this->execute(self::RES_AS_STRING);
+		$this->responseType = self::RES_AS_STRING;
+		return $this->_execute();
+	}
+
+	/**
+	 * Request as string
+	 * @return KnRequest
+	 */
+	public function setForString(): KnRequest
+	{
+		$this->responseType = self::RES_AS_STRING;
+		return $this;
 	}
 
 	/**
@@ -558,10 +566,23 @@ class KnRequest
 	 */
 	public function execForJson(bool $associative = false, int $depth = 512, int $flags = JSON_BIGINT_AS_STRING): KnResponse
 	{
-		$this->resJsonAssoc = $associative;
-		$this->resJsonDepth = $depth;
-		$this->resJsonFlags = $flags;
-		return $this->execute(self::RES_AS_JSON);
+		$this->responseType = self::RES_AS_JSON;
+		$this->responseTypeArgs = ['associative' => $associative, 'depth' => $depth, 'flags' => $flags];
+		return $this->_execute();
+	}
+
+	/**
+	 * Request as JSON
+	 * @param bool $associative
+	 * @param int $depth
+	 * @param int $flags
+	 * @return KnRequest
+	 */
+	public function setForJson(bool $associative = false, int $depth = 512, int $flags = JSON_BIGINT_AS_STRING): KnRequest
+	{
+		$this->responseType = self::RES_AS_JSON;
+		$this->responseTypeArgs = ['associative' => $associative, 'depth' => $depth, 'flags' => $flags];
+		return $this;
 	}
 
 	/**
@@ -571,8 +592,21 @@ class KnRequest
 	 */
 	public function execForFile(string $filePath): KnResponse
 	{
+		$this->responseType = self::RES_AS_FILE;
 		$this->responseFile = $filePath;
-		return $this->execute(self::RES_AS_FILE);
+		return $this->_execute();
+	}
+
+	/**
+	 * Set for file
+	 * @param string $filePath
+	 * @return KnRequest
+	 */
+	public function setForFile(string $filePath): KnRequest
+	{
+		$this->responseType = self::RES_AS_FILE;
+		$this->responseFile = $filePath;
+		return $this;
 	}
 
 	/**
@@ -582,145 +616,53 @@ class KnRequest
 	 */
 	public function execForStream(mixed $fp): KnResponse
 	{
+		$this->responseType = self::RES_AS_STREAM;
 		$this->responseStream = $fp;
-		return $this->execute(self::RES_AS_STREAM);
+		return $this->_execute();
 	}
 
 	/**
-	 * Execute the request
-	 * @param int $resType
+	 * Set for stream
+	 * @param resource $fp
+	 * @return KnRequest
+	 */
+	public function setForStream(mixed $fp): KnRequest
+	{
+		$this->responseType = self::RES_AS_STREAM;
+		$this->responseStream = $fp;
+		return $this;
+	}
+
+	/**
+	 * Execute a single request.
 	 * @return KnResponse
 	 */
-	private function execute(int $resType): KnResponse
+	private function _execute(): KnResponse
 	{
 		try {
-			// Set CURL options
-			curl_setopt_array($this->curl, [
-				CURLOPT_URL => $this->buildUrl(),
-				CURLOPT_CUSTOMREQUEST => $this->method,
-				CURLOPT_CONNECTTIMEOUT => $this->connectTimeout,
-				CURLOPT_TIMEOUT => $this->timeout,
-				CURLOPT_SSL_VERIFYHOST => $this->verifySsl ? 2 : 0,
-				CURLOPT_SSL_VERIFYPEER => $this->verifySsl,
-				CURLOPT_USERAGENT => $this->userAgent,
-				CURLOPT_INFILE => null,
-				CURLOPT_POSTFIELDS => null,
-				CURLOPT_POST => false,
-				CURLOPT_PUT => false
-			]);
-
-			// Set custom CURL options
-			if (count($this->curlOptions)) curl_setopt_array($this->curl, $this->curlOptions);
-
-			// Header
-			$headers = $this->headers;
-
-			// Basic auth
-			if (!is_null($this->basicAuth)) $headers['Authorization'] = "Basic {$this->basicAuth}";
-
-			// Body content
-			if (isset($this->formBody)) {
-				curl_setopt_array($this->curl, [
-					CURLOPT_POST => true,
-					CURLOPT_POSTFIELDS => http_build_query($this->formBody)
-				]);
-			} else if (isset($this->formDataBody)) {
-				curl_setopt_array($this->curl, [
-					CURLOPT_POST => true,
-					CURLOPT_POSTFIELDS => $this->formDataBody
-				]);
-			} else if (isset($this->stringBody)) {
-				curl_setopt_array($this->curl, [
-					CURLOPT_POST => true,
-					CURLOPT_POSTFIELDS => $this->stringBody
-				]);
-				if (!isset($headers['Content-Type'])) $headers['Content-Type'] = 'text/plain; charset=utf-8';
-			} else if (isset($this->jsonBody)) {
-				curl_setopt_array($this->curl, [
-					CURLOPT_POST => true,
-					CURLOPT_POSTFIELDS => json_encode($this->jsonBody)
-				]);
-				if (!isset($headers['Content-Type'])) $headers['Content-Type'] = 'application/json; charset=utf-8';
-			} else if (isset($this->fileBody)) {
-				curl_setopt_array($this->curl, [
-					CURLOPT_PUT => true,
-					CURLOPT_INFILE => ($fileBody = fopen($this->fileBody, 'rb')),
-					CURLOPT_INFILESIZE => filesize($this->fileBody)
-				]);
-			} else if (isset($this->streamBody)) {
-				curl_setopt_array($this->curl, [
-					CURLOPT_PUT => true,
-					CURLOPT_INFILE => $this->streamBody,
-					CURLOPT_INFILESIZE => fstat($this->streamBody)['size']
-				]);
-			}
-
-			// Set headers
-			curl_setopt(
-				$this->curl,
-				CURLOPT_HTTPHEADER,
-				array_map(fn($k, $v) => $this->normalizeHeaderKey($k) . ": {$v}", array_keys($headers), array_values($headers))
-			);
-
-			// Write mode
-			if ($resType == self::RES_AS_FILE || $resType == self::RES_AS_STREAM) {
-				curl_setopt_array($this->curl, [
-					CURLOPT_RETURNTRANSFER => false,
-					CURLOPT_FILE => $resType == self::RES_AS_FILE ? ($this->responseStream = fopen($this->responseFile, 'w')) : $this->responseStream
-				]);
-			} else {
-				curl_setopt_array($this->curl, [
-					CURLOPT_FILE => null,
-					CURLOPT_RETURNTRANSFER => true
-				]);
-			}
+			// Build the curl handle
+			$handlesToClose = $this->_buildCurlHandle($this->curl);
 
 			// Execute the request
 			$response = curl_exec($this->curl);
 
-			// Close the uploaded file
-			if (isset($fileBody)) fclose($fileBody);
+			// Close opened handle for that request
+			foreach ($handlesToClose as $h) {
+				if (is_resource($h)) fclose($h);
+			}
 
 			// CURL error code
-			switch (curl_errno($this->curl)) {
-				// No errors (except maybe the HTTP code)
-				case CURLE_OK:
-					$res = $this->parseOkResponse($resType, $response);
-					break;
+			$curlErrorNo = curl_errno($this->curl);
+			$curlError = curl_error($this->curl);
 
-				// Network error
-				case CURLE_COULDNT_RESOLVE_HOST:
-				case CURLE_COULDNT_CONNECT:
-				case CURLE_OPERATION_TIMEOUTED:
-				case CURLE_HTTP_PORT_FAILED:
-				case CURLE_SEND_ERROR:
-				case CURLE_RECV_ERROR:
-					return new KnResponse(error: KnResponse::ERROR_NETWORK, curlError: curl_error($this->curl));
-					break;
-
-				// SSL error
-				case CURLE_SSL_CERTPROBLEM:
-				case CURLE_SSL_CIPHER:
-				case CURLE_SSL_PEER_CERTIFICATE:
-				case CURLE_SSL_CONNECT_ERROR:
-				case CURLE_SSL_ENGINE_NOTFOUND:
-				case CURLE_SSL_ENGINE_SETFAILED:
-				case CURLE_SSL_CACERT_BADFILE:
-				case CURLE_SSL_CACERT:
-					return new KnResponse(error: KnResponse::ERROR_SSL, curlError: curl_error($this->curl));
-					break;
-
-				// Unknown error
-				default:
-					return new KnResponse(error: KnResponse::ERROR_UNKNOWN, curlError: curl_error($this->curl));
-					break;
-			}
+			// Handle response
+			$knResponse = $this->_parseResponse($this->curl, $response, $curlErrorNo, $curlError);
 
 			// Free memory
 			$this->responseHeaders = [];
 
 			// Returns the res
-			return $res;
+			return $knResponse;
 		} catch (Throwable $e) {
 			return new KnResponse(
 				error: KnResponse::ERROR_UNKNOWN,
@@ -730,39 +672,254 @@ class KnRequest
 	}
 
 	/**
-	 * Parse OK Response
-	 * @param int $resType
-	 * @param string|true $response
+	 * Execute multiple requests in parallel
+	 * @param array<KnRequest>
+	 * @return array<KnResponse>
+	 */
+	public static function execMulti(array $requests): array
+	{
+		$multiHandle = curl_multi_init();
+		curl_multi_setopt($multiHandle, CURLMOPT_PIPELINING, CURLPIPE_MULTIPLEX);
+		curl_multi_setopt($multiHandle, CURLMOPT_MAX_HOST_CONNECTIONS, 1);
+		curl_multi_setopt($multiHandle, CURLMOPT_MAX_TOTAL_CONNECTIONS, 10);
+
+		$shareHandle = curl_share_init();
+		curl_share_setopt($shareHandle, CURLSHOPT_SHARE, CURL_LOCK_DATA_DNS);
+		curl_share_setopt($shareHandle, CURLSHOPT_SHARE, CURL_LOCK_DATA_SSL_SESSION);
+		curl_share_setopt($shareHandle, CURLSHOPT_SHARE, CURL_LOCK_DATA_CONNECT);
+
+		$handles = [];
+		$results = [];
+
+		// Prepare all handles and add them to the multi-handle
+		foreach ($requests as $key => $req) {
+			if (!$req instanceof self) continue;
+			curl_setopt($req->curl, CURLOPT_SHARE, $shareHandle);
+			$handlesToClose = $req->_buildCurlHandle($req->curl);
+			curl_multi_add_handle($multiHandle, $req->curl);
+
+			// Store the handle and its corresponding request object, key and handles to close
+			$handles[] = ['request' => $req, 'key' => $key, 'handles_to_close' => $handlesToClose];
+		}
+
+		// Execute the requests
+		$running = null;
+		do {
+			do {
+				$mrc = curl_multi_exec($multiHandle, $running);
+			} while ($mrc === CURLM_CALL_MULTI_PERFORM);
+
+			if ($running) {
+				$rc = curl_multi_select($multiHandle, 0.01);
+				if ($rc === -1) usleep(2000);
+			}
+		} while ($running > 0 && $mrc === CURLM_OK);
+
+		// Process the results
+		foreach ($handles as $h) {
+			/** @var KnRequest $req */
+			$req = $h['request'];
+			$key = $h['key'];
+
+			$responseContent = curl_multi_getcontent($req->curl);
+
+			// Close opened handle for that request
+			foreach ($h['handles_to_close'] as $h) {
+				if (is_resource($h)) fclose($h);
+			}
+
+			// CURL error code
+			$curlErrorNo = curl_errno($req->curl);
+			$curlError = curl_error($req->curl);
+
+			// Handle response
+			$results[$key] = $req->_parseResponse($req->curl, $responseContent, $curlErrorNo, $curlError);
+
+			// Free memory
+			$req->responseHeaders = [];
+
+			curl_multi_remove_handle($multiHandle, $req->curl);
+			curl_close($req->curl);
+		}
+
+		curl_multi_close($multiHandle);
+		curl_share_close($shareHandle);
+
+		return $results;
+	}
+
+	/**
+	 * Configures a cURL handle based on the object's properties.
+	 * @param CurlHandle $curl The handle to configure.
+	 * @return array Returns file handles that need to be closed.
+	 */
+	private function _buildCurlHandle(CurlHandle $curl): mixed
+	{
+		// Set basic CURL options
+		curl_setopt_array($curl, [
+			CURLOPT_URL => $this->_buildUrl(),
+			CURLOPT_CUSTOMREQUEST => $this->method,
+			CURLOPT_CONNECTTIMEOUT => $this->connectTimeout,
+			CURLOPT_TIMEOUT => $this->timeout,
+			CURLOPT_SSL_VERIFYHOST => $this->verifySsl ? 2 : 0,
+			CURLOPT_SSL_VERIFYPEER => $this->verifySsl,
+			CURLOPT_USERAGENT => $this->userAgent,
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_INFILE => null,
+			CURLOPT_POSTFIELDS => null,
+			CURLOPT_POST => false,
+			CURLOPT_PUT => false
+		]);
+
+		// Set custom CURL options
+		if (count($this->curlOptions)) curl_setopt_array($curl, $this->curlOptions);
+
+		// Header
+		$headers = $this->headers;
+
+		// Basic auth
+		if (!is_null($this->basicAuth)) $headers['Authorization'] = "Basic {$this->basicAuth}";
+
+		// Body content
+		$fileBodyHandle = null;
+		if (isset($this->formBody)) {
+			curl_setopt_array($curl, [
+				CURLOPT_POST => true,
+				CURLOPT_POSTFIELDS => http_build_query($this->formBody)
+			]);
+		} elseif (isset($this->formDataBody)) {
+			curl_setopt_array($curl, [
+				CURLOPT_POST => true,
+				CURLOPT_POSTFIELDS => $this->formDataBody
+			]);
+		} elseif (isset($this->stringBody)) {
+			curl_setopt_array($curl, [
+				CURLOPT_POST => true,
+				CURLOPT_POSTFIELDS => $this->stringBody
+			]);
+			if (!isset($headers['Content-Type'])) $headers['Content-Type'] = 'text/plain; charset=utf-8';
+		} elseif (isset($this->jsonBody)) {
+			curl_setopt_array($curl, [
+				CURLOPT_POST => true,
+				CURLOPT_POSTFIELDS => json_encode($this->jsonBody)
+			]);
+			if (!isset($headers['Content-Type'])) $headers['Content-Type'] = 'application/json; charset=utf-8';
+		} elseif (isset($this->fileBody)) {
+			$fileBodyHandle = fopen($this->fileBody, 'rb');
+			curl_setopt_array($curl, [
+				CURLOPT_PUT => true,
+				CURLOPT_INFILE => $fileBodyHandle,
+				CURLOPT_INFILESIZE => filesize($this->fileBody)
+			]);
+		} elseif (isset($this->streamBody)) {
+			curl_setopt_array($curl, [
+				CURLOPT_PUT => true,
+				CURLOPT_INFILE => $this->streamBody,
+				CURLOPT_INFILESIZE => fstat($this->streamBody)['size']
+			]);
+		}
+
+		// Set headers
+		curl_setopt(
+			$curl,
+			CURLOPT_HTTPHEADER,
+			array_map(fn($k, $v) => $this->_normalizeHeaderKey($k) . ": {$v}", array_keys($headers), array_values($headers))
+		);
+
+		// Handle response writing for file
+		$downloadFileHandle = null;
+		if ($this->responseType === self::RES_AS_FILE) {
+			$downloadFileHandle = fopen($this->responseFile, 'wb');
+			curl_setopt_array($curl, [
+				CURLOPT_RETURNTRANSFER => false, // Write directly to file
+				CURLOPT_FILE => $downloadFileHandle
+			]);
+		}
+		// Handle response writing for stream
+		else if ($this->responseType === self::RES_AS_STREAM) {
+			curl_setopt_array($curl, [
+				CURLOPT_RETURNTRANSFER => false, // Write directly to stream
+				CURLOPT_FILE => $this->responseStream
+			]);
+		}
+
+		return ['upload_handle' => $fileBodyHandle, 'download_handle' => $downloadFileHandle];
+	}
+
+	/**
+	 * Parses a completed cURL response.
+	 * @param CurlHandle $curl The completed handle.
+	 * @param bool|string $response The response content from curl_exec or curl_multi_getcontent.
+	 * @param int $curlErrorNo The curl error number.
+	 * @param string $curlError The curl error message.
 	 * @return KnResponse
 	 */
-	private function parseOkResponse(int $resType, string|true $response): KnResponse
+	private function _parseResponse(CurlHandle $curl, bool|string $response, int $curlErrorNo, string $curlError): KnResponse
 	{
-		// JSON
-		if ($resType == self::RES_AS_JSON) {
-			// Parse JSON
-			$data = json_decode($response, $this->resJsonAssoc, $this->resJsonDepth, $this->resJsonFlags);
+		// Handle CURL errors
+		switch ($curlErrorNo) {
+			// No errors (except maybe the HTTP code)
+			case CURLE_OK:
+				return $this->_parseOkResponse($curl, $response);
+				break;
 
-			// Bad JSON
-			if (!is_object($data) && !is_array($data)) return new KnResponse(
-				httpCode: intval(curl_getinfo($this->curl, CURLINFO_RESPONSE_CODE)),
-				headers: $this->responseHeaders,
-				error: KnResponse::ERROR_PARSING
-			);
+			// Network error
+			case CURLE_COULDNT_RESOLVE_HOST:
+			case CURLE_COULDNT_CONNECT:
+			case CURLE_OPERATION_TIMEOUTED:
+			case CURLE_HTTP_PORT_FAILED:
+			case CURLE_SEND_ERROR:
+			case CURLE_RECV_ERROR:
+				return new KnResponse(error: KnResponse::ERROR_NETWORK, curlError: $curlError);
+				break;
+
+			// SSL error
+			case CURLE_SSL_CERTPROBLEM:
+			case CURLE_SSL_CIPHER:
+			case CURLE_SSL_PEER_CERTIFICATE:
+			case CURLE_SSL_CONNECT_ERROR:
+			case CURLE_SSL_ENGINE_NOTFOUND:
+			case CURLE_SSL_ENGINE_SETFAILED:
+			case CURLE_SSL_CACERT_BADFILE:
+			case CURLE_SSL_CACERT:
+				return new KnResponse(error: KnResponse::ERROR_SSL, curlError: $curlError);
+				break;
+
+			// Unknown error
+			default:
+				return new KnResponse(error: KnResponse::ERROR_UNKNOWN, curlError: $curlError);
+				break;
 		}
-		// File
-		else if ($resType == self::RES_AS_FILE) {
-			// Close the stream
-			if (isset($this->responseStream)) {
-				fclose($this->responseStream);
-				$this->responseStream = null;
+	}
+
+	/**
+	 * Parse OK Response
+	 * @param CurlHandle $curl
+	 * @param string|bool $response
+	 * @return KnResponse
+	 */
+	private function _parseOkResponse(CurlHandle $curl, string|bool $response): KnResponse
+	{
+		$httpCode = intval(curl_getinfo($curl, CURLINFO_RESPONSE_CODE));
+		$data = null;
+
+		// JSON
+		if ($this->responseType === self::RES_AS_JSON) {
+			$data = json_decode((string)$response, $this->responseTypeArgs['associative'], $this->responseTypeArgs['depth'], $this->responseTypeArgs['flags']);
+			if (json_last_error() !== JSON_ERROR_NONE) {
+				return new KnResponse(httpCode: $httpCode, headers: $this->responseHeaders, error: KnResponse::ERROR_PARSING, curlError: json_last_error_msg());
 			}
+		}
+		// String, File or Stream
+		else {
+			$data = $response;
 		}
 
 		// Returns the response
 		return new KnResponse(
-			httpCode: intval(curl_getinfo($this->curl, CURLINFO_RESPONSE_CODE)),
+			httpCode: $httpCode,
 			headers: $this->responseHeaders,
-			data: $data ?? $response
+			data: $data
 		);
 	}
 
@@ -770,7 +927,7 @@ class KnRequest
 	 * Get the prepared URL
 	 * @return string
 	 */
-	private function buildUrl(): string
+	private function _buildUrl(): string
 	{
 		$url = $this->url;
 
@@ -788,7 +945,7 @@ class KnRequest
 	 * @param string $k
 	 * @return string
 	 */
-	private function normalizeHeaderKey(string $k): string
+	private function _normalizeHeaderKey(string $k): string
 	{
 		return str_replace(' ', '-', ucwords(strtolower(str_replace('-', ' ', $k))));
 	}
@@ -799,10 +956,10 @@ class KnRequest
 	 * @param string $header
 	 * @return int
 	 */
-	private function handleResponseHeader(CurlHandle $curl, string $header): int
+	private function _handleResponseHeader(CurlHandle $curl, string $header): int
 	{
 		if ($pos = strpos($header, ':')) {
-			$this->responseHeaders[$this->normalizeHeaderKey(substr($header, 0, $pos))] = trim(substr($header, $pos + 2));
+			$this->responseHeaders[$this->_normalizeHeaderKey(substr($header, 0, $pos))] = trim(substr($header, $pos + 2));
 		}
 
 		return strlen($header);
