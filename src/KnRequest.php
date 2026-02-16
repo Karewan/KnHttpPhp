@@ -735,8 +735,8 @@ class KnRequest
 			$responseContent = curl_multi_getcontent($req->curl);
 
 			// Close opened handle for that request
-			foreach ($h['handles_to_close'] as $h) {
-				if (is_resource($h)) fclose($h);
+			foreach ($h['handles_to_close'] as $htc) {
+				if (is_resource($htc)) fclose($htc);
 			}
 
 			// CURL error code
