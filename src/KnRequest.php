@@ -764,7 +764,7 @@ class KnRequest
 	 * @param CurlHandle $curl The handle to configure.
 	 * @return array Returns file handles that need to be closed.
 	 */
-	private function _buildCurlHandle(CurlHandle $curl): mixed
+	private function _buildCurlHandle(CurlHandle $curl): array
 	{
 		// Set basic CURL options
 		curl_setopt_array($curl, [
