@@ -238,6 +238,16 @@ class KnRequest
 	}
 
 	/**
+	 * PATCH Request
+	 * @param string $url
+	 * @return KnRequest
+	 */
+	public function patch(string $url): KnRequest
+	{
+		return $this->request('PATCH', $url);
+	}
+
+	/**
 	 * Prepare a request
 	 * @param string $method
 	 * @param string $url
