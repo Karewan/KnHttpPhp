@@ -715,7 +715,6 @@ class KnRequest
 		}
 
 		// Execute the requests
-		$running = null;
 		do {
 			do {
 				$mrc = curl_multi_exec($multiHandle, $running);
