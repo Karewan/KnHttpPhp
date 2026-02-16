@@ -750,7 +750,7 @@ class KnRequest
 			$req->responseHeaders = [];
 
 			curl_multi_remove_handle($multiHandle, $req->curl);
-			curl_close($req->curl);
+			unset($req->curl);
 		}
 
 		curl_multi_close($multiHandle);
