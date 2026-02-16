@@ -954,7 +954,7 @@ class KnRequest
 	 * @param string $header
 	 * @return int
 	 */
-	private function _handleResponseHeader(CurlHandle $curl, string $header): int
+	private function _handleResponseHeader(string $header): int
 	{
 		if ($pos = strpos($header, ':')) {
 			$this->responseHeaders[$this->_normalizeHeaderKey(substr($header, 0, $pos))] = trim(substr($header, $pos + 2));
