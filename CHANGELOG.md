@@ -1,3 +1,9 @@
+v1.1.3 (2026-02-16)
+----------------------------
+* Added PATCH method
+* Added PHP 8.5 compatibility
+* Various fixes and improvements
+
 v1.1.2 (2025-10-19)
 ----------------------------
 * Fixed response parsing when using curl_multi_getcontent
