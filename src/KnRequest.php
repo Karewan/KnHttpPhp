@@ -754,7 +754,7 @@ class KnRequest
 		}
 
 		curl_multi_close($multiHandle);
-		curl_share_close($shareHandle);
+		unset($shareHandle);
 
 		return $results;
 	}
