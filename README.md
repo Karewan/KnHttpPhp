@@ -16,7 +16,7 @@ $ composer require karewan/knhttp
 
 ## Usage
 
-### Get request
+### GET request
 
 ```php
 /** @var KnResponse */
@@ -25,7 +25,7 @@ $res = (new KnRequest())
 	->execForJson();
 ```
 
-### Post request
+### POST request
 
 ```php
 /** @var KnResponse */
@@ -39,7 +39,7 @@ $res = (new KnRequest())
 	->execForJson();
 ```
 
-### Put request
+### PUT request
 
 ```php
 /** @var KnResponse */
@@ -53,12 +53,21 @@ $res = (new KnRequest())
 	->execForJson();
 ```
 
-### Delete request
+### DELETE request
 
 ```php
 /** @var KnResponse */
 $res = (new KnRequest())
 	->delete("https://jsonplaceholder.typicode.com/todos/1")
+	->execForJson();
+```
+
+### PATCH request
+
+```php
+/** @var KnResponse */
+$res = (new KnRequest())
+	->patch("https://jsonplaceholder.typicode.com/todos/1")
 	->execForJson();
 ```
 
@@ -221,7 +230,7 @@ See the changelog [here](CHANGELOG.md)
 See the license [here](LICENSE.txt)
 
 ```
-Copyright © 2025 Florent VIALATTE (github.com/Karewan)
+Copyright © 2025 - 2026 Florent VIALATTE (github.com/Karewan)
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
