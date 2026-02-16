@@ -868,39 +868,27 @@ class KnRequest
 	private function _parseResponse(CurlHandle $curl, null|bool|string $response, int $curlErrorNo, string $curlError): KnResponse
 	{
 		// Handle CURL errors
-		switch ($curlErrorNo) {
-			// No errors (except maybe the HTTP code)
-			case CURLE_OK:
-				return $this->_parseOkResponse($curl, $response);
-				break;
+		return match ($curlErrorNo) {
+			CURLE_OK => $this->_parseOkResponse($curl, $response),
 
-			// Network error
-			case CURLE_COULDNT_RESOLVE_HOST:
-			case CURLE_COULDNT_CONNECT:
-			case CURLE_OPERATION_TIMEOUTED:
-			case CURLE_HTTP_PORT_FAILED:
-			case CURLE_SEND_ERROR:
-			case CURLE_RECV_ERROR:
-				return new KnResponse(error: KnResponse::ERROR_NETWORK, curlError: $curlError);
-				break;
+			CURLE_COULDNT_RESOLVE_HOST,
+			CURLE_COULDNT_CONNECT,
+			CURLE_OPERATION_TIMEOUTED,
+			CURLE_HTTP_PORT_FAILED,
+			CURLE_SEND_ERROR,
+			CURLE_RECV_ERROR => new KnResponse(error: KnResponse::ERROR_NETWORK, curlError: $curlError),
 
-			// SSL error
-			case CURLE_SSL_CERTPROBLEM:
-			case CURLE_SSL_CIPHER:
-			case CURLE_SSL_PEER_CERTIFICATE:
-			case CURLE_SSL_CONNECT_ERROR:
-			case CURLE_SSL_ENGINE_NOTFOUND:
-			case CURLE_SSL_ENGINE_SETFAILED:
-			case CURLE_SSL_CACERT_BADFILE:
-			case CURLE_SSL_CACERT:
-				return new KnResponse(error: KnResponse::ERROR_SSL, curlError: $curlError);
-				break;
+			CURLE_SSL_CERTPROBLEM,
+			CURLE_SSL_CIPHER,
+			CURLE_SSL_PEER_CERTIFICATE,
+			CURLE_SSL_CONNECT_ERROR,
+			CURLE_SSL_ENGINE_NOTFOUND,
+			CURLE_SSL_ENGINE_SETFAILED,
+			CURLE_SSL_CACERT_BADFILE,
+			CURLE_SSL_CACERT => new KnResponse(error: KnResponse::ERROR_SSL, curlError: $curlError),
 
-			// Unknown error
-			default:
-				return new KnResponse(error: KnResponse::ERROR_UNKNOWN, curlError: $curlError);
-				break;
-		}
+			default => new KnResponse(error: KnResponse::ERROR_UNKNOWN, curlError: $curlError),
+		};
 	}
 
 	/**
