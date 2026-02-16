@@ -950,6 +950,7 @@ class KnRequest
 
 	/**
 	 * Handle a response header
+	 * @param CurlHandle $curl
 	 * @param string $header
 	 * @return int
 	 */
