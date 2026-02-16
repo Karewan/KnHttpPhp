@@ -194,7 +194,7 @@ class KnRequest
 	public function __destruct()
 	{
 		// Close CURL handle if it exists
-		if (isset($this->curl)) curl_close($this->curl);
+		if (isset($this->curl)) unset($this->curl);
 	}
 
 	/**
