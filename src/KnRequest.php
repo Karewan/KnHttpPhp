@@ -900,7 +900,6 @@ class KnRequest
 	private function _parseOkResponse(CurlHandle $curl, null|string|bool $response): KnResponse
 	{
 		$httpCode = intval(curl_getinfo($curl, CURLINFO_RESPONSE_CODE));
-		$data = null;
 
 		// JSON
 		if ($this->responseType === self::RES_AS_JSON) {
