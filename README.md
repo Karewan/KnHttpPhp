@@ -71,7 +71,25 @@ $res = (new KnRequest())
 	->execForJson();
 ```
 
-### Request
+### HEAD request
+
+```php
+/** @var KnResponse */
+$res = (new KnRequest())
+	->patch("https://fakerestapi.azurewebsites.net/api/v1/activities")
+	->execForHeaders();
+```
+
+### OPTION request
+
+```php
+/** @var KnResponse */
+$res = (new KnRequest())
+	->option("https://fakerestapi.azurewebsites.net/api/v1/activities")
+	->execForHeaders();
+```
+
+### Custom method request
 
 ```php
 /** @var KnResponse */
@@ -100,14 +118,26 @@ $results = KnRequest::execMulti([$req1, $req2]);
 // Enable verify SSL
 $req->setVerifySsl(true);
 
+// Check is verify SSL
+$isVerifySsl = $req->isVerifySsl();
+
 // Request timeout in seconds
 $req->setConnectTimeout(10);
+
+// Request connect timeout
+$connectTimeout = $req->getConnectTimeout();
 
 // Set request timeout in seconds
 $req->setTimeout(300);
 
+// Get req timeout
+$timeout = $req->getTimeout();
+
 // Set user agent
 $req->setUserAgent("MyApp/1.0.0");
+
+// Get the user agent
+$userAgent = $req->getUserAgent();
 
 // Adding one header to the request
 $req->setHeader("Api-Key", "xxx");
@@ -117,6 +147,9 @@ $req->setHeaders([
 	"Api-Key" => "xxx",
 	"X-Proto" => "CustomProto"
 ]);
+
+// Get request headers
+$headers = $req->getHeaders();
 
 // Remove all added headers from the request
 $req->clearHeaders();
@@ -130,11 +163,17 @@ $req->setPathParams([
 	"id" => "1"
 ]);
 
+// Get the req path params
+$pathParams = $req->getPathParams();
+
 // Remove all added path params from the request
 $req->clearPathParams();
 
 // Set basic auth
 $req->setBasicAuth("username", "password");
+
+// Get the req basic auth
+$basicAuth = $req->getBasicAuth();
 
 // Remove basic auth
 $req->clearBasicAuth();
@@ -148,6 +187,9 @@ $req->setQueryParams([
 	"limit" => "10"
 ]);
 
+// Get the req query params
+$queryParams = $req->getQueryParams();
+
 // Remove all added query params from the request
 $req->clearQueryParams();
 
@@ -160,6 +202,9 @@ $req->setCurlOptions([
 	CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_2
 ]);
 
+// Get the req CURL options
+$curlOptions = $req->getCurlOptions();
+
 // Remove all added curl options from the request
 $req->clearCurlOptions();
 
@@ -169,14 +214,23 @@ $req->setFormBody([
 	"field3" => "xxx"
 ]);
 
+// Get the req form body
+$formBody = $req->getFormBody();
+
 // Set an formData body for POST and PUT
 $req->setFormDataBody([
 	"data1" => "xxx",
 	"field3" => "xxx"
 ]);
 
+// Get the req formData body
+$formDataBody = $req->getFormDataBody();
+
 // Set an string body for POST and PUT
 $req->setStringBody("mybody");
+
+// Get the req string body
+$stringBody = $req->getStringBody();
 
 // Set an JSON body for POST and PUT
 $req->setJsonBody([
@@ -185,10 +239,16 @@ $req->setJsonBody([
 		"azerty" => "bad for english",
 		"qwerty" => "bad for french"
 	]
-])
+]);
+
+// Get the req JSON body
+$jsonBody = $req->getJsonBody();
 
 // Set an file body for POST and PUT
 $req->setFileBody("myfile.txt");
+
+// Get file body path
+$fileBodyPath = $req->getFileBody();
 
 // Set an stream body for POST and PUT
 $req->setStreamBody($mystream);
@@ -219,6 +279,15 @@ $req->execForStream();
 
 // Set request to a stream response (for execMulti)
 $req->setForStream();
+
+// Get the raw req Url
+$url = $req->getUrl();
+
+// Get the prepared URL (including query and path params)
+$preparedUrl = $req->getPreparedUrl();
+
+// Get the req method
+$method = $req->getMethod();
 ```
 
 ### KnResponse methods
