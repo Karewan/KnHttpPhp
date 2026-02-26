@@ -118,7 +118,7 @@ $results = KnRequest::execMulti([$req1, $req2]);
 // Enable verify SSL
 $req->setVerifySsl(true);
 
-// Check is verify SSL
+//  Check if SSL is verified
 $isVerifySsl = $req->isVerifySsl();
 
 // Request timeout in seconds
@@ -130,7 +130,7 @@ $connectTimeout = $req->getConnectTimeout();
 // Set request timeout in seconds
 $req->setTimeout(300);
 
-// Get req timeout
+// Get request timeout
 $timeout = $req->getTimeout();
 
 // Set user agent
@@ -139,10 +139,13 @@ $req->setUserAgent("MyApp/1.0.0");
 // Get the user agent
 $userAgent = $req->getUserAgent();
 
-// Adding one header to the request
+// Set one header to the request
 $req->setHeader("Api-Key", "xxx");
 
-// Adding multi headers to the request
+// Remove one header to the request
+$req->setHeader("Api-Key", null);
+
+// Set multiple headers to the request
 $req->setHeaders([
 	"Api-Key" => "xxx",
 	"X-Proto" => "CustomProto"
@@ -157,7 +160,10 @@ $req->clearHeaders();
 // Set a path param (https://jsonplaceholder.typicode.com/todos/{id})
 $req->setPathParam("id", "1");
 
-// Set multiples path param (https://jsonplaceholder.typicode.com/{type}/{id})
+// Remove a path param
+$req->setPathParam("id", null);
+
+// Set multiple path param (https://jsonplaceholder.typicode.com/{type}/{id})
 $req->setPathParams([
 	"type" => "todos",
 	"id" => "1"
@@ -180,6 +186,9 @@ $req->clearBasicAuth();
 
 // Set a query param to be added to the URL
 $req->setQueryParam("limit", "10");
+
+// Remove a query param
+$req->setQueryParam("limit", null);
 
 // Set multiple query param to be added to the URL
 $req->setQueryParams([
