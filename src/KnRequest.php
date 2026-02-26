@@ -962,4 +962,83 @@ class KnRequest
 
 		return strlen($header);
 	}
+
+	public function getHeaders(): array {
+		return $this->headers;
+	}
+
+	public function getJsonBody(): mixed
+	{
+		return $this->jsonBody;
+	}
+
+	public function getStringBody(): ?string
+	{
+		return $this->stringBody;
+	}
+
+	public function getFormDataBody(): ?array
+	{
+		return $this->formDataBody;
+	}
+
+	public function getFormBody(): ?array
+	{
+		return $this->formBody;
+	}
+
+	public function getCurlOptions(): array
+	{
+		return $this->curlOptions;
+	}
+
+	public function getQueryParams(): array
+	{
+		return $this->queryParams;
+	}
+
+	public function getPathParams(): array
+	{
+		return $this->pathParams;
+	}
+
+	public function getBasicAuth(): ?string
+	{
+		return $this->basicAuth;
+	}
+
+	public function getUrl(): string
+	{
+		return $this->url;
+	}
+
+	public function getMethod(): string
+	{
+		return $this->method;
+	}
+
+	public function isVerifySsl(): bool
+	{
+		return $this->verifySsl;
+	}
+
+	public function getUserAgent(): ?string
+	{
+		return $this->userAgent;
+	}
+
+	public function getTimeout(): int
+	{
+		return $this->timeout;
+	}
+
+	public function getConnectTimeout(): int
+	{
+		return $this->connectTimeout;
+	}
+
+	public function getFileBody(): ?string
+	{
+		return $this->fileBody;
+	}
 }
