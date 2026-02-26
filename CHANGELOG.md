@@ -1,3 +1,10 @@
+v1.1.5 (2026-02-26)
+----------------------------
+
+* Added HEAD and OPTION methods
+* Added execForHeaders and setForHeaders methods
+* Updated getPreparedUrl to be public
+
 v1.1.4 (2026-02-26)
 ----------------------------
 * Added isSuccessful method in KnResponse
