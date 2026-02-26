@@ -95,7 +95,7 @@ $req2 = (new KnRequest())
 $results = KnRequest::execMulti([$req1, $req2]);
 ```
 
-### Request params
+### KnRequest methods
 ```php
 // Enable verify SSL
 $req->setVerifySsl(true);
@@ -219,6 +219,80 @@ $req->execForStream();
 
 // Set request to a stream response (for execMulti)
 $req->setForStream();
+```
+
+### KnResponse methods
+
+```php
+/**
+ * Returns `true` if there are no errors
+ * @return bool
+ */
+$success = $res->isSuccessful();
+
+/**
+ * Returns the HTTP code (0 == error)
+ * @return int
+ */
+$httpCode = $res->getHttpCode();
+
+/**
+ * Returns the response headers
+ * @return array<string,string>
+ */
+$headers = $res->getHeaders();
+
+/**
+ * Returns the response data
+ * @return mixed
+ */
+$data = $res->getData();
+
+/**
+ * Returns the last error code (0 == no error)
+ * See constants KnResponse::ERROR_
+ * @return int
+ */
+$error = $res->getError();
+
+/**
+ * Returns the error label (constant name of the error)
+ * TODO: to be replaced with an enum in a new version with breaking changes
+ * @return string
+ */
+$errorLabel = $res->getErrorLabel();
+
+/**
+ * Returns the CURL error (null == no error)
+ * @return null|string
+ */
+$curlError = $res->getCurlError();
+
+/**
+ * Returns the exception full stack trace (null == no exception)
+ * @return null|string
+ */
+$exception = $res->getException();
+
+/**
+ * Returns the full error trace (for example => logging purposes)
+ * @param bool $withHeaders includes headers, false by default
+ * @param bool $withData includes data, false by default
+ * @return string
+ */
+$fullErrorTrace = $res->getFullErrorTrace();
+
+/**
+ * Returns the CURL info regarding this Response
+ * @return array
+ */
+$curlInfo = $res->getCurlInfo();
+
+/**
+ * Returns total time of transfer in milliseconds
+ * @return int
+ */
+$totalTime = $res->getTotalTime();
 ```
 
 ## Changelog
