@@ -1,6 +1,5 @@
 v1.1.4 (2026-02-26)
 ----------------------------
-
 * Added isSuccessful method in KnResponse
 * Added getCurlInfo method in KnResponse
 * Added getTotalTime method in KnResponse
