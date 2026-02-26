@@ -867,17 +867,32 @@ class KnRequest
 	 */
 	private function _parseResponse(CurlHandle $curl, null|bool|string $response, int $curlErrorNo, string $curlError): KnResponse
 	{
+		// Get information regarding this handle
+		if(!is_array($curlInfo = curl_getinfo($curl))) {
+			$curlInfo = [];
+		}
+
 		// Handle CURL errors
 		return match ($curlErrorNo) {
-			CURLE_OK => $this->_parseOkResponse($curl, $response),
+			// OK
+			CURLE_OK => $this->_parseOkResponse(
+				$curlInfo,
+				$response
+			),
 
+			// NETWORK ERROR
 			CURLE_COULDNT_RESOLVE_HOST,
 			CURLE_COULDNT_CONNECT,
 			CURLE_OPERATION_TIMEOUTED,
 			CURLE_HTTP_PORT_FAILED,
 			CURLE_SEND_ERROR,
-			CURLE_RECV_ERROR => new KnResponse(error: KnResponse::ERROR_NETWORK, curlError: $curlError),
+			CURLE_RECV_ERROR => new KnResponse(
+				curlInfo: $curlInfo,
+				error: KnResponse::ERROR_NETWORK,
+				curlError: $curlError
+			),
 
+			// SSL ERROR
 			CURLE_SSL_CERTPROBLEM,
 			CURLE_SSL_CIPHER,
 			CURLE_SSL_PEER_CERTIFICATE,
@@ -885,27 +900,39 @@ class KnRequest
 			CURLE_SSL_ENGINE_NOTFOUND,
 			CURLE_SSL_ENGINE_SETFAILED,
 			CURLE_SSL_CACERT_BADFILE,
-			CURLE_SSL_CACERT => new KnResponse(error: KnResponse::ERROR_SSL, curlError: $curlError),
+			CURLE_SSL_CACERT => new KnResponse(
+				curlInfo: $curlInfo,
+				error: KnResponse::ERROR_SSL,
+				curlError: $curlError
+			),
 
-			default => new KnResponse(error: KnResponse::ERROR_UNKNOWN, curlError: $curlError),
+			// UNKNOWN ERROR
+			default => new KnResponse(
+				curlInfo: $curlInfo,
+				error: KnResponse::ERROR_UNKNOWN,
+				curlError: $curlError
+			),
 		};
 	}
 
 	/**
 	 * Parse OK Response
-	 * @param CurlHandle $curl
+	 * @param array $curlInfo
 	 * @param null|string|bool $response
 	 * @return KnResponse
 	 */
-	private function _parseOkResponse(CurlHandle $curl, null|string|bool $response): KnResponse
+	private function _parseOkResponse(array $curlInfo, null|string|bool $response): KnResponse
 	{
-		$httpCode = intval(curl_getinfo($curl, CURLINFO_RESPONSE_CODE));
-
 		// JSON
 		if ($this->responseType === self::RES_AS_JSON) {
 			$data = json_decode((string)$response, $this->responseTypeArgs['associative'], $this->responseTypeArgs['depth'], $this->responseTypeArgs['flags']);
 			if (json_last_error() !== JSON_ERROR_NONE) {
-				return new KnResponse(httpCode: $httpCode, headers: $this->responseHeaders, error: KnResponse::ERROR_PARSING, curlError: json_last_error_msg());
+				return new KnResponse(
+					curlInfo: $curlInfo,
+					headers: $this->responseHeaders,
+					error: KnResponse::ERROR_PARSING,
+					curlError: json_last_error_msg()
+				);
 			}
 		}
 		// String, File or Stream
@@ -915,7 +942,7 @@ class KnRequest
 
 		// Returns the response
 		return new KnResponse(
-			httpCode: $httpCode,
+			curlInfo: $curlInfo,
 			headers: $this->responseHeaders,
 			data: $data
 		);
