@@ -1,3 +1,13 @@
+v1.1.4 (2026-02-26)
+----------------------------
+
+* Added isSuccessful method in KnResponse
+* Added getCurlInfo method in KnResponse
+* Added getTotalTime method in KnResponse
+* Added getErrorLabel method in KnResponse
+* Added getFullErrorTrace method in KnResponse
+* Added getters methods in KnRequest
+
 v1.1.3 (2026-02-16)
 ----------------------------
 * Added PATCH method
