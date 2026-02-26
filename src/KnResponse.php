@@ -80,7 +80,7 @@ class KnResponse
 	}
 
 	/**
-	 * Retrurns the HTTP code (0 == error)
+	 * Returns the HTTP code (0 == error)
 	 * @return int
 	 */
 	public function getHttpCode(): int
@@ -89,7 +89,7 @@ class KnResponse
 	}
 
 	/**
-	 * Retrurns the headers
+	 * Returns the response headers
 	 * @return array<string,string>
 	 */
 	public function getHeaders(): array
@@ -98,7 +98,7 @@ class KnResponse
 	}
 
 	/**
-	 * Retrurns the datas
+	 * Returns the response data
 	 * @return mixed
 	 */
 	public function getData(): mixed
@@ -108,11 +108,33 @@ class KnResponse
 
 	/**
 	 * Returns the last error code (0 == no error)
+	 * See constants KnResponse::ERROR_
 	 * @return int
 	 */
 	public function getError(): int
 	{
 		return $this->error;
+	}
+
+	/**
+	 * Returns the error label (constant name of the error)
+	 * TODO: to be replaced with an enum in a new version with breaking changes
+	 * @return string
+	 */
+	public function getErrorLabel(): string
+	{
+		$reflection = new \ReflectionClass(self::class);
+		$constants = $reflection->getConstants();
+		return array_search($this->error, $constants, true);
+	}
+
+	/**
+	 * Returns the CURL error (null == no error)
+	 * @return null|string
+	 */
+	public function getCurlError(): ?string
+	{
+		return $this->curlError;
 	}
 
 	/**
@@ -125,12 +147,32 @@ class KnResponse
 	}
 
 	/**
-	 * Returns the CURL error (null == no error)
-	 * @return null|string
+	 * Returns the full error trace (for example => logging purposes)
+	 * @param bool $withHeaders includes headers, false by default
+	 * @param bool $withData includes data, false by default
+	 * @return string
 	 */
-	public function getCurlError(): ?string
+	public function getFullErrorTrace(bool $withHeaders = false, bool $withData = false): string
 	{
-		return $this->curlError;
+		$trace = "{httpCode={$this->httpCode}, error=" . $this->getErrorLabel();
+		$trace .= ", curlError=" . (is_null($this->curlError) ? 'null' : "`{$this->curlError}`");
+		$trace .= ", exception=" . (is_null($this->exception) ? 'null' : "`{$this->exception}`");
+
+		if ($withHeaders) {
+			$trace .= ", headers=" . json_encode($this->headers);
+		}
+
+		if ($withData) {
+			if (is_object($this->data) || is_array($this->data)) {
+				$trace .= ", data=" . json_encode($this->data);
+			} else if (is_string($this->data)) {
+				$trace .= ", data=`{$this->data}`";
+			} else {
+				$trace .= ", data=null";
+			}
+		}
+
+		return "{$trace}}";
 	}
 
 	/**
