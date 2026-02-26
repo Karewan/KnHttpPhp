@@ -18,7 +18,8 @@ class KnRequest
 		RES_AS_STRING = 1,
 		RES_AS_JSON = 2,
 		RES_AS_FILE = 3,
-		RES_AS_STREAM = 4;
+        RES_AS_STREAM = 4,
+        RES_AS_HEADERS = 5;
 
 	/**
 	 * The CurlHandle
@@ -198,7 +199,7 @@ class KnRequest
 	}
 
 	/**
-	 * GET Request
+     * Prepare a GET Request
 	 * @param string $url
 	 * @return KnRequest
 	 */
@@ -208,7 +209,7 @@ class KnRequest
 	}
 
 	/**
-	 * POST request
+     * Prepare a POST request
 	 * @param string $url
 	 * @return KnRequest
 	 */
@@ -218,7 +219,7 @@ class KnRequest
 	}
 
 	/**
-	 * PUT request
+     * Prepare a PUT request
 	 * @param string $url
 	 * @return KnRequest
 	 */
@@ -228,7 +229,7 @@ class KnRequest
 	}
 
 	/**
-	 * DELETE request
+     * Prepare a DELETE request
 	 * @param string $url
 	 * @return KnRequest
 	 */
@@ -238,7 +239,7 @@ class KnRequest
 	}
 
 	/**
-	 * PATCH Request
+     * Prepare a PATCH Request
 	 * @param string $url
 	 * @return KnRequest
 	 */
@@ -246,6 +247,26 @@ class KnRequest
 	{
 		return $this->request('PATCH', $url);
 	}
+
+    /**
+     * Prepare a HEAD Request
+     * @param string $url
+     * @return KnRequest
+     */
+    public function head(string $url): KnRequest
+    {
+        return $this->request('HEAD', $url);
+    }
+
+    /**
+     * Prepare a OPTION Request
+     * @param string $url
+     * @return KnRequest
+     */
+    public function option(string $url): KnRequest
+    {
+        return $this->request('OPTION', $url);
+    }
 
 	/**
 	 * Prepare a request
@@ -305,7 +326,7 @@ class KnRequest
 	}
 
 	/**
-	 * Set request headers
+     * Set (replace) all request headers
 	 * @param array<string,string> $headers
 	 * @return KnRequest
 	 */
@@ -316,9 +337,9 @@ class KnRequest
 	}
 
 	/**
-	 * Set request header
+     * Add / Update / Delete a request header
 	 * @param string $key
-	 * @param null|string $value (null delete the header)
+     * @param null|string $value (null will delete the header)
 	 * @return KnRequest
 	 */
 	public function setHeader(string $key, ?string $value): KnRequest
@@ -339,7 +360,7 @@ class KnRequest
 	}
 
 	/**
-	 * Set request path parameters
+     * Set (replace) all request path parameters
 	 * @param array<string,string> $pathParams
 	 * @return KnRequest
 	 */
@@ -350,9 +371,9 @@ class KnRequest
 	}
 
 	/**
-	 * Set request path parameter
+     * Add / Update / Delete request path parameter
 	 * @param string $key
-	 * @param null|string $value (null delete the param)
+     * @param null|string $value (null will delete the param)
 	 * @return KnRequest
 	 */
 	public function setPathParam(string $key, ?string $value): KnRequest
@@ -395,7 +416,7 @@ class KnRequest
 	}
 
 	/**
-	 * Set request query parameters
+     * Set (replace) all request query parameters
 	 * @param array<string,string> $queryParams
 	 * @return KnRequest
 	 */
@@ -406,9 +427,9 @@ class KnRequest
 	}
 
 	/**
-	 * Set request query parameter
+     * Add / Update / Delete request query parameter
 	 * @param string $key
-	 * @param null|string $value (null delete the param)
+     * @param null|string $value (null will delete the param)
 	 * @return KnRequest
 	 */
 	public function setQueryParam(string $key, ?string $value): KnRequest
@@ -546,6 +567,26 @@ class KnRequest
 		$this->fileBody = null;
 		return $this;
 	}
+
+    /**
+     * Execute the request for headers only
+     * @return KnResponse
+     */
+    public function execForHeaders(): KnResponse
+    {
+        $this->responseType = self::RES_AS_HEADERS;
+        return $this->_execute();
+    }
+
+    /**
+     * Request as headers only
+     * @return KnRequest
+     */
+    public function setForHeaders(): KnRequest
+    {
+        $this->responseType = self::RES_AS_HEADERS;
+        return $this;
+    }
 
 	/**
 	 * Execute the request and parse as string
@@ -768,7 +809,7 @@ class KnRequest
 	{
 		// Set basic CURL options
 		curl_setopt_array($curl, [
-			CURLOPT_URL => $this->_buildUrl(),
+            CURLOPT_URL => $this->getPreparedUrl(),
 			CURLOPT_CUSTOMREQUEST => $this->method,
 			CURLOPT_CONNECTTIMEOUT => $this->connectTimeout,
 			CURLOPT_TIMEOUT => $this->timeout,
@@ -793,7 +834,9 @@ class KnRequest
 
 		// Body content
 		$fileBodyHandle = null;
-		if (isset($this->formBody)) {
+        if ($this->method === 'HEAD' || $this->responseType === self::RES_AS_HEADERS) {
+            curl_setopt($curl, CURLOPT_NOBODY, true);
+        } elseif (isset($this->formBody)) {
 			curl_setopt_array($curl, [
 				CURLOPT_POST => true,
 				CURLOPT_POSTFIELDS => http_build_query($this->formBody)
@@ -925,8 +968,14 @@ class KnRequest
 	{
 		// JSON
 		if ($this->responseType === self::RES_AS_JSON) {
-			$data = json_decode((string)$response, $this->responseTypeArgs['associative'], $this->responseTypeArgs['depth'], $this->responseTypeArgs['flags']);
-			if (json_last_error() !== JSON_ERROR_NONE) {
+            $data = json_decode(
+                json: (string)$response,
+                associative: $this->responseTypeArgs['associative'],
+                depth: $this->responseTypeArgs['depth'],
+                flags: $this->responseTypeArgs['flags']
+            );
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
 				return new KnResponse(
 					curlInfo: $curlInfo,
 					headers: $this->responseHeaders,
@@ -934,10 +983,12 @@ class KnRequest
 					curlError: json_last_error_msg()
 				);
 			}
-		}
-		// String, File or Stream
+        } // String
+        else if ($this->responseType === self::RES_AS_STRING) {
+            $data = $response;
+        } // Headers, File or Stream
 		else {
-			$data = $response;
+            $data = null;
 		}
 
 		// Returns the response
@@ -952,7 +1003,7 @@ class KnRequest
 	 * Get the prepared URL
 	 * @return string
 	 */
-	private function _buildUrl(): string
+    public function getPreparedUrl(): string
 	{
 		$url = $this->url;
 
