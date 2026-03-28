@@ -1,6 +1,10 @@
-v1.1.6 (2026-03-28)
+v1.1.7 (2026-03-28)
 ----------------------------
 
+* HTTP 2 for TLS only, HTTP 1.1 for clear text
+
+v1.1.6 (2026-03-28)
+----------------------------
 * Improved performances of execMulti
 * Various fixes and improvements
 

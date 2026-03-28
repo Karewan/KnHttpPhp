@@ -172,7 +172,7 @@ class KnRequest
 		// Set default handle CURL options if it exists
         curl_setopt_array($this->curl, [
             CURLOPT_PROTOCOLS => CURLPROTO_HTTPS | CURLPROTO_HTTP,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_2_0,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_2TLS,
             CURLOPT_FOLLOWLOCATION => false,
             CURLOPT_HEADER => false,
             CURLOPT_FAILONERROR => false,
