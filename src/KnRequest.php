@@ -686,11 +686,6 @@ class KnRequest
 			// Execute the request
 			$response = curl_exec($this->curl);
 
-			// Close opened handle for that request
-			foreach ($handlesToClose as $h) {
-				if (is_resource($h)) fclose($h);
-			}
-
 			// CURL error code
 			$curlErrorNo = curl_errno($this->curl);
 			$curlError = curl_error($this->curl);
@@ -698,7 +693,10 @@ class KnRequest
 			// Handle response
 			$knResponse = $this->_parseResponse($this->curl, $response, $curlErrorNo, $curlError);
 
-			// Free memory
+            // Cleanup resources for this specific request
+            foreach ($handlesToClose as $h) {
+                if (is_resource($h)) fclose($h);
+            }
 			$this->responseHeaders = [];
 
 			// Returns the res
