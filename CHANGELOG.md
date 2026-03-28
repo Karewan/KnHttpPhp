@@ -1,6 +1,11 @@
-v1.1.5 (2026-02-26)
+v1.1.6 (2026-03-28)
 ----------------------------
 
+* Improved performances of execMulti
+* Various fixes and improvements
+
+v1.1.5 (2026-02-26)
+----------------------------
 * Added HEAD and OPTION methods
 * Added execForHeaders and setForHeaders methods
 * Updated getPreparedUrl to be public
