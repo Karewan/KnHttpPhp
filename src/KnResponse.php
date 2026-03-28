@@ -1,8 +1,10 @@
-<?php
+<?php /** @noinspection PhpUnused */
 
 declare(strict_types=1);
 
 namespace Karewan\KnHttp;
+
+use ReflectionClass;
 
 class KnResponse
 {
@@ -123,7 +125,7 @@ class KnResponse
 	 */
 	public function getErrorLabel(): string
 	{
-		$reflection = new \ReflectionClass(self::class);
+        $reflection = new ReflectionClass(self::class);
 		$constants = $reflection->getConstants();
 		return array_search($this->error, $constants, true);
 	}
@@ -154,9 +156,9 @@ class KnResponse
 	 */
 	public function getFullErrorTrace(bool $withHeaders = false, bool $withData = false): string
 	{
-		$trace = "{httpCode={$this->httpCode}, error=" . $this->getErrorLabel();
-		$trace .= ", curlError=" . (is_null($this->curlError) ? 'null' : "`{$this->curlError}`");
-		$trace .= ", exception=" . (is_null($this->exception) ? 'null' : "`{$this->exception}`");
+        $trace = "{httpCode=$this->httpCode, error=" . $this->getErrorLabel();
+        $trace .= ", curlError=" . (is_null($this->curlError) ? 'null' : "`$this->curlError`");
+        $trace .= ", exception=" . (is_null($this->exception) ? 'null' : "`$this->exception`");
 
 		if ($withHeaders) {
 			$trace .= ", headers=" . json_encode($this->headers);
@@ -166,13 +168,13 @@ class KnResponse
 			if (is_object($this->data) || is_array($this->data)) {
 				$trace .= ", data=" . json_encode($this->data);
 			} else if (is_string($this->data)) {
-				$trace .= ", data=`{$this->data}`";
+                $trace .= ", data=`$this->data`";
 			} else {
 				$trace .= ", data=null";
 			}
 		}
 
-		return "{$trace}}";
+        return "$trace}";
 	}
 
 	/**

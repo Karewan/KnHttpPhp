@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpUnused */
 
 declare(strict_types=1);
 
@@ -401,7 +401,7 @@ class KnRequest
 	 */
 	public function setBasicAuth(string $username, string $password): KnRequest
 	{
-		$this->basicAuth = base64_encode("{$username}:{$password}");
+        $this->basicAuth = base64_encode("$username:$password");
 		return $this;
 	}
 
@@ -830,7 +830,7 @@ class KnRequest
 		$headers = $this->headers;
 
 		// Basic auth
-		if (!is_null($this->basicAuth)) $headers['Authorization'] = "Basic {$this->basicAuth}";
+        if (!is_null($this->basicAuth)) $headers['Authorization'] = "Basic $this->basicAuth";
 
 		// Body content
 		$fileBodyHandle = null;
@@ -877,7 +877,7 @@ class KnRequest
 		curl_setopt(
 			$curl,
 			CURLOPT_HTTPHEADER,
-			array_map(fn($k, $v) => $this->_normalizeHeaderKey($k) . ": {$v}", array_keys($headers), array_values($headers))
+            array_map(fn($k, $v) => $this->_normalizeHeaderKey($k) . ": $v", array_keys($headers), array_values($headers))
 		);
 
 		// Handle response writing for file
@@ -1031,7 +1031,8 @@ class KnRequest
 	 * @param CurlHandle $curl
 	 * @param string $header
 	 * @return int
-	 */
+     * @noinspection PhpUnusedParameterInspection
+     */
 	private function _handleResponseHeader(CurlHandle $curl, string $header): int
 	{
 		if ($pos = strpos($header, ':')) {
