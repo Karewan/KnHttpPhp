@@ -170,22 +170,21 @@ class KnRequest
 		if (!isset($this->curl)) throw new RuntimeException('cURL handle not initialized.');
 
 		// Set default handle CURL options if it exists
-		curl_setopt_array($this->curl, [
-			CURLOPT_PROTOCOLS => CURLPROTO_HTTPS | CURLPROTO_HTTP,
-			CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-			CURLOPT_FOLLOWLOCATION => false,
-			CURLOPT_HEADER => false,
-			CURLOPT_FAILONERROR => false,
-			CURLOPT_TCP_FASTOPEN => true,
-			CURLOPT_TCP_NODELAY => true,
-			CURLOPT_TCP_KEEPALIVE => true,
-			CURLOPT_FORBID_REUSE => false,
-			CURLOPT_SSL_VERIFYSTATUS => false,
-			CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_2,
-			CURLOPT_NOSIGNAL => true,
-			CURLOPT_HEADERFUNCTION => [$this, '_handleResponseHeader'],
-			CURLOPT_ACCEPT_ENCODING => ''
-		]);
+        curl_setopt_array($this->curl, [
+            CURLOPT_PROTOCOLS => CURLPROTO_HTTPS | CURLPROTO_HTTP,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_2_0,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_HEADER => false,
+            CURLOPT_FAILONERROR => false,
+            CURLOPT_TCP_NODELAY => true,
+            CURLOPT_TCP_KEEPALIVE => true,
+            CURLOPT_FORBID_REUSE => false,
+            CURLOPT_SSL_VERIFYSTATUS => false,
+            CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_2,
+            CURLOPT_NOSIGNAL => true,
+            CURLOPT_HEADERFUNCTION => $this->_handleResponseHeader(...),
+            CURLOPT_ACCEPT_ENCODING => ''
+        ]);
 	}
 
 	/**
