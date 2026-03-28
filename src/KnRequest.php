@@ -711,78 +711,107 @@ class KnRequest
 
 	/**
 	 * Execute multiple requests in parallel
-	 * @param array<KnRequest> $requests
+     * @param KnRequest[] $requests
 	 * @param int $concurrency
 	 * @param int $maxConnPerHost
-	 * @return array<KnResponse>
+     * @return KnResponse[]
 	 */
 	public static function execMulti(array $requests, int $concurrency = 10, int $maxConnPerHost = 1): array
 	{
+        if (empty($requests)) {
+            return [];
+        }
+
 		$multiHandle = curl_multi_init();
 		curl_multi_setopt($multiHandle, CURLMOPT_PIPELINING, CURLPIPE_MULTIPLEX);
-		curl_multi_setopt($multiHandle, CURLMOPT_MAX_HOST_CONNECTIONS, $maxConnPerHost);
-		curl_multi_setopt($multiHandle, CURLMOPT_MAX_TOTAL_CONNECTIONS, $concurrency);
+        curl_multi_setopt($multiHandle, CURLMOPT_MAX_TOTAL_CONNECTIONS, $concurrency);
+        curl_multi_setopt($multiHandle, CURLMOPT_MAX_HOST_CONNECTIONS, $maxConnPerHost);
 
-		$shareHandle = curl_share_init();
-		curl_share_setopt($shareHandle, CURLSHOPT_SHARE, CURL_LOCK_DATA_DNS);
-		curl_share_setopt($shareHandle, CURLSHOPT_SHARE, CURL_LOCK_DATA_SSL_SESSION);
-		curl_share_setopt($shareHandle, CURLSHOPT_SHARE, CURL_LOCK_DATA_CONNECT);
+        if (function_exists('curl_share_init_persistent')) {
+            $shareHandle = curl_share_init_persistent([
+                CURL_LOCK_DATA_DNS,
+                CURL_LOCK_DATA_SSL_SESSION,
+                CURL_LOCK_DATA_CONNECT
+            ]);
+        } else {
+            $shareHandle = curl_share_init();
+            curl_share_setopt($shareHandle, CURLSHOPT_SHARE, CURL_LOCK_DATA_DNS);
+            curl_share_setopt($shareHandle, CURLSHOPT_SHARE, CURL_LOCK_DATA_SSL_SESSION);
+            curl_share_setopt($shareHandle, CURLSHOPT_SHARE, CURL_LOCK_DATA_CONNECT);
+        }
 
-		$handles = [];
+        $activesHandles = [];
 		$results = [];
 
 		// Prepare all handles and add them to the multi-handle
 		foreach ($requests as $key => $req) {
-			if (!$req instanceof self) continue;
-			curl_setopt($req->curl, CURLOPT_SHARE, $shareHandle);
+            if (!$req instanceof self) {
+                continue;
+            }
+
+            curl_setopt($req->curl, CURLOPT_SHARE, $shareHandle);
 			$handlesToClose = $req->_buildCurlHandle($req->curl);
 			curl_multi_add_handle($multiHandle, $req->curl);
 
-			// Store the handle and its corresponding request object, key and handles to close
-			$handles[] = ['request' => $req, 'key' => $key, 'handles_to_close' => $handlesToClose];
+            // Store the handle and its corresponding request object, key and handles to
+            $chId = spl_object_id($req->curl);
+            $activesHandles[$chId] = ['request' => $req, 'key' => $key, 'handles_to_close' => $handlesToClose];
 		}
 
-		// Execute the requests
-		do {
+        do {
+            // Execute the requests
 			do {
 				$mrc = curl_multi_exec($multiHandle, $running);
 			} while ($mrc === CURLM_CALL_MULTI_PERFORM);
 
+            // Process finished requests
+            while ($info = curl_multi_info_read($multiHandle)) {
+                if ($info['msg'] !== CURLMSG_DONE) {
+                    continue;
+                }
+
+                /** @var CurlHandle $ch */
+                $ch = $info['handle'];
+                $chId = spl_object_id($ch);
+                curl_multi_remove_handle($multiHandle, $ch);
+
+                if (isset($activesHandles[$chId])) {
+                    $h = $activesHandles[$chId];
+
+                    /** @var KnRequest $req */
+                    $req = $h['request'];
+
+                    // Fetch data
+                    $responseContent = curl_multi_getcontent($ch);
+
+                    // CURL error code
+                    $curlErrorNo = curl_errno($ch);
+                    $curlError = curl_error($ch);
+
+                    // Handle response
+                    $results[$h['key']] = $req->_parseResponse($ch, $responseContent, $curlErrorNo, $curlError);
+
+                    // Cleanup resources for this specific request
+                    foreach ($h['handles_to_close'] as $htc) {
+                        if (is_resource($htc)) {
+                            fclose($htc);
+                        }
+                    }
+                    $req->responseHeaders = [];
+                    unset($activesHandles[$chId]);
+                }
+            }
+
+            // Wait for activity
 			if ($running) {
-				$rc = curl_multi_select($multiHandle, 0.01);
-				if ($rc === -1) usleep(2000);
+                $rc = curl_multi_select($multiHandle, 0.1);
+                if ($rc === -1) {
+                    usleep(1_000);
+                }
 			}
 		} while ($running > 0 && $mrc === CURLM_OK);
 
-		// Process the results
-		foreach ($handles as $h) {
-			/** @var KnRequest $req */
-			$req = $h['request'];
-			$key = $h['key'];
-
-			$responseContent = curl_multi_getcontent($req->curl);
-
-			// Close opened handle for that request
-			foreach ($h['handles_to_close'] as $htc) {
-				if (is_resource($htc)) fclose($htc);
-			}
-
-			// CURL error code
-			$curlErrorNo = curl_errno($req->curl);
-			$curlError = curl_error($req->curl);
-
-			// Handle response
-			$results[$key] = $req->_parseResponse($req->curl, $responseContent, $curlErrorNo, $curlError);
-
-			// Free memory
-			$req->responseHeaders = [];
-
-			curl_multi_remove_handle($multiHandle, $req->curl);
-			unset($req->curl);
-		}
-
 		curl_multi_close($multiHandle);
-		unset($shareHandle);
 
 		return $results;
 	}
