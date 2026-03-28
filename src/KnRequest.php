@@ -188,16 +188,6 @@ class KnRequest
 	}
 
 	/**
-	 * Class destructor
-	 * @return void
-	 */
-	public function __destruct()
-	{
-		// Close CURL handle if it exists
-		if (isset($this->curl)) unset($this->curl);
-	}
-
-	/**
      * Prepare a GET Request
 	 * @param string $url
 	 * @return KnRequest
